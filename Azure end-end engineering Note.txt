@@ -1,0 +1,95 @@
+If File Exists Expression builder
+@equals(activity('File_exists').output.exists, true)
+================================
+
+Target path for if file exists
+true condition copy activity
+
+@concat(item().targetpath, '/archive/', 
+formatDateTime(utcNow(), 'yyyy'), '/', 
+formatDateTime(utcNow(), 'MM'), '/', 
+formatDateTime(utcNow(), 'dd'))
+
+==================================
+filename
+@split(item().tablename,'.')[1]
+==============================
+tablename
+@item().tablename
+=====================================
+
+IF FULL LOAD Expression builder
+@equals(item().loadtype,'Full')
+------------------------------
+
+IF TRUE (FULL LOAD)
+select query for full load copy activity
+@concat('select *, ''', item().datasource, 
+''' as datasource from ', item().tablename)
+
+query for lookup activity:log audit table
+@concat(
+    'insert into trendytechproject.audit.load_logs(data_source, tablename, numberofrowscopied, watermarkcolumnname, loaddate) values (''',
+    item().datasource, ''', ''',
+    item().tablename, ''', ',
+    activity('Full load').output.rowsCopied, ', ''',
+    item().watermark, ''', ''',
+    utcNow(), ''')'
+)
+
+
+----------------------------------
+
+
+IF FALSE (Incremental load)
+query for lookup activity:to get last load date
+@concat(
+    'select coalesce(cast(max(loaddate) as date), ''1990-01-01'') as last_fetched_date from trendytechproject.audit.load_logs where data_source = ''',
+    item().datasource,
+    ''' and tablename = ''',
+    item().tablename,
+    ''''
+)
+
+query for copy activity 
+@concat(
+    'select *, ''',
+    item().datasource,
+    ''' as datasource from ',
+    item().tablename,
+    ' where ',
+    item().watermark,
+    ' >= ''',
+    activity('Lookup for incremental').output.value[0].last_fetched_date,
+    ''''
+)
+
+
+Query for insert into log
+@concat(
+    'insert into trendytechproject.audit.load_logs(data_source, tablename, numberofrowscopied, watermarkcolumnname, loaddate) values (''',
+    item().datasource, ''', ''',
+    item().tablename, ''', ',
+    activity('incremental load').output.rowsCopied, ', ''',
+    item().watermark, ''', ''',
+    utcNow(), ''')'
+)
+
+========================================
+PART TWO
+
+activities for if condition for is_active
+@equals(item().is_active,'1')
+If true: execute pipeline activity
+if false: do nothing
+---------------------------
+Activity for exexute pipeline
+@equals(pipeline().parameters.load_type, 'full')
+
+=========================
+set the paramters value in the parent pipeline
+=============================
+
+To SEND FILES TO GITHUB
+--Go to settings/developer settings/ personal access tokens/generate tokes
+--On databricks/settings/linked account/git integration
