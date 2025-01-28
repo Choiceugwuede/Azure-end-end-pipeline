@@ -21,6 +21,8 @@ To provide a streamlined approach for integrating and analyzing data from variou
 ## Pipeline Architecture
 Initial Pipeline: Copy activity to load EMR data from landing into prepared hospital database
 
+View Project Architecture [here](https://github.com/Choiceugwuede/Hospital-Revenue-Cycle-Management-Pipeline/blob/main/Pipeline%20Architecture.png)
+
 The main pipeline processes data through three main stages:
 1. Bronze Layer:
    - Dynamic Raw data ingestion from all source in parquet format
